@@ -21,12 +21,15 @@ const createSendToken = (user, statusCode, res) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, avatar, bio } = req.body;
 
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      role,
+      avatar,
+      bio,
     });
 
     createSendToken(user, 201, res);
