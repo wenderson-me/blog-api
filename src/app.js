@@ -1,6 +1,9 @@
 
 const express = require('express');
 const cors = require('cors');
+const dbConnect = require('./utils/database.js');
+
+dbConnect().catch(err => console.error('Erro ao conectar ao banco de dados:', err));
 
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');

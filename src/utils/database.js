@@ -1,14 +1,33 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
-const connectDB = async () => {
+let cachedDb = null;
+
+const dbConnect = async () => {
+  if (cachedDb) {
+    console.log('Usando conexão existente com o MongoDB');
+    return cachedDb;
+  }
+
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {});
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error('MONGODB_URI não definida nas variáveis de ambiente');
+    }
 
-    console.log(`MongoDB conectado: ${conn.connection.host}`);
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
+
+    const client = await mongoose.connect(uri, options);
+    cachedDb = client;
+    console.log('Conectado ao MongoDB com sucesso');
+    return client;
   } catch (error) {
-    console.error('Erro na conexão com MongoDB:', error.message);
-    process.exit(1);
+    console.error('Erro na conexão com MongoDB:', error);
+    throw error;
   }
 };
 
-module.exports = connectDB;
+module.exports = dbConnect;
