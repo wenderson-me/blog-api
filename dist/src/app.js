@@ -15,7 +15,6 @@ const posts_1 = __importDefault(require("./routes/posts"));
 const users_1 = __importDefault(require("./routes/users"));
 const errorHandler_1 = __importDefault(require("./middleware/errorHandler"));
 (0, database_1.default)().catch(err => console.error('Erro ao conectar ao banco de dados:', err));
-// Usar path.resolve para garantir o caminho correto do arquivo swagger.yaml
 const swaggerPath = path_1.default.resolve(process.cwd(), 'swagger.yaml');
 let swaggerDocument;
 try {
@@ -30,9 +29,8 @@ app.use(express_1.default.json());
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
-// Configuração do Swagger UI
 try {
-    app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
+    app.use('/api/v1/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
 }
 catch (error) {
     console.error('Erro ao configurar Swagger UI:', error);

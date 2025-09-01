@@ -9,16 +9,13 @@ const User_1 = __importDefault(require("../models/User"));
 const signToken = (id) => {
     const payload = { id };
     const secret = process.env.JWT_SECRET || '';
-    // Usar o valor padrão '30d' como StringValue
     const expiresIn = process.env.JWT_EXPIRE || '30d';
     const options = { expiresIn };
     return jsonwebtoken_1.default.sign(payload, secret, options);
 };
 const createSendToken = (user, statusCode, res) => {
-    // Converter o ObjectId para string de forma segura
     const userId = user._id ? user._id.toString() : '';
     const token = signToken(userId);
-    // Remover a senha do objeto de resposta
     const userObject = user.toObject();
     delete userObject.password;
     res.status(statusCode).json({
