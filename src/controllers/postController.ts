@@ -1,8 +1,18 @@
-const Post = require('../models/Post');
+import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import Post, { IPost } from '../models/Post';
 
-exports.getAllPosts = async (req, res) => {
+interface QueryParams {
+  page?: string;
+  sort?: string;
+  limit?: string;
+  fields?: string;
+  [key: string]: any;
+}
+
+export const getAllPosts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const queryObj = { ...req.query };
+    const queryObj: QueryParams = { ...req.query };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach(el => delete queryObj[el]);
 
@@ -14,14 +24,14 @@ exports.getAllPosts = async (req, res) => {
     query = query.populate('author', 'name email avatar');
 
     if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
+      const sortBy = (req.query.sort as string).split(',').join(' ');
       query = query.sort(sortBy);
     } else {
       query = query.sort('-createdAt');
     }
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     const total = await Post.countDocuments(JSON.parse(queryStr));
@@ -30,7 +40,7 @@ exports.getAllPosts = async (req, res) => {
 
     const posts = await query;
 
-    const pagination = {};
+    const pagination: { next?: { page: number; limit: number }; prev?: { page: number; limit: number } } = {};
 
     if (endIndex < total) {
       pagination.next = {
@@ -53,7 +63,7 @@ exports.getAllPosts = async (req, res) => {
       pagination,
       data: posts
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -61,7 +71,7 @@ exports.getAllPosts = async (req, res) => {
   }
 };
 
-exports.getPost = async (req, res) => {
+export const getPost = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('author', 'name email avatar')
@@ -81,7 +91,7 @@ exports.getPost = async (req, res) => {
       success: true,
       data: post
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -89,9 +99,9 @@ exports.getPost = async (req, res) => {
   }
 };
 
-exports.createPost = async (req, res) => {
+export const createPost = async (req: Request, res: Response): Promise<void> => {
   try {
-    req.body.author = req.user.id;
+    req.body.author = req.user?._id;
 
     const post = await Post.create(req.body);
 
@@ -99,7 +109,7 @@ exports.createPost = async (req, res) => {
       success: true,
       data: post
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -107,7 +117,7 @@ exports.createPost = async (req, res) => {
   }
 };
 
-exports.updatePost = async (req, res) => {
+export const updatePost = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     let post = await Post.findById(req.params.id);
 
@@ -118,7 +128,7 @@ exports.updatePost = async (req, res) => {
       });
     }
 
-    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (post.author.toString() !== req.user?._id && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Não autorizado a atualizar este post'
@@ -134,7 +144,7 @@ exports.updatePost = async (req, res) => {
       success: true,
       data: post
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -142,7 +152,7 @@ exports.updatePost = async (req, res) => {
   }
 };
 
-exports.deletePost = async (req, res) => {
+export const deletePost = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -153,7 +163,7 @@ exports.deletePost = async (req, res) => {
       });
     }
 
-    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (post.author.toString() !== req.user?._id && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Não autorizado a deletar este post'
@@ -166,7 +176,7 @@ exports.deletePost = async (req, res) => {
       success: true,
       data: {}
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -174,7 +184,7 @@ exports.deletePost = async (req, res) => {
   }
 };
 
-exports.likePost = async (req, res) => {
+export const likePost = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -186,15 +196,18 @@ exports.likePost = async (req, res) => {
     }
 
     const alreadyLiked = post.likes.find(like =>
-      like.user.toString() === req.user.id
+      like.user.toString() === req.user?._id?.toString()
     );
 
     if (alreadyLiked) {
       post.likes = post.likes.filter(like =>
-        like.user.toString() !== req.user.id
+        like.user.toString() !== req.user?._id?.toString()
       );
     } else {
-      post.likes.push({ user: req.user.id });
+      post.likes.push({ 
+        user: req.user?._id as mongoose.Types.ObjectId, 
+        createdAt: new Date() 
+      });
     }
 
     await post.save();
@@ -203,7 +216,7 @@ exports.likePost = async (req, res) => {
       success: true,
       data: post
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -211,7 +224,7 @@ exports.likePost = async (req, res) => {
   }
 };
 
-exports.addComment = async (req, res) => {
+export const addComment = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const post = await Post.findById(req.params.id);
 
@@ -223,8 +236,9 @@ exports.addComment = async (req, res) => {
     }
 
     const newComment = {
-      user: req.user.id,
-      content: req.body.content
+      user: req.user?._id as mongoose.Types.ObjectId,
+      content: req.body.content,
+      createdAt: new Date()
     };
 
     post.comments.push(newComment);
@@ -234,7 +248,7 @@ exports.addComment = async (req, res) => {
       success: true,
       data: post
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message

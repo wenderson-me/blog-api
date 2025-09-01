@@ -1,25 +1,36 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import { Request, Response } from 'express';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import User, { IUser } from '../models/User';
+import type { StringValue } from 'ms';
 
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
-  });
+type JwtPayload = {
+  id: string;
 };
 
-const createSendToken = (user, statusCode, res) => {
-  const token = signToken(user._id);
+const signToken = (id: string): string => {
+  const payload: JwtPayload = { id };
+  const secret = process.env.JWT_SECRET || '';
+  const expiresIn = process.env.JWT_EXPIRE as StringValue || '30d' as StringValue;
+  const options: SignOptions = { expiresIn };
 
-  user.password = undefined;
+  return jwt.sign(payload, secret, options);
+};
+
+const createSendToken = (user: IUser, statusCode: number, res: Response): void => {
+  const userId = user._id ? user._id.toString() : '';
+  const token = signToken(userId);
+
+  const userObject = user.toObject();
+  delete userObject.password;
 
   res.status(statusCode).json({
     success: true,
     token,
-    data: { user }
+    data: { user: userObject }
   });
 };
 
-exports.register = async (req, res) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, role, avatar, bio } = req.body;
 
@@ -33,7 +44,7 @@ exports.register = async (req, res) => {
     });
 
     createSendToken(user, 201, res);
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -41,7 +52,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { email, password } = req.body;
 
@@ -62,7 +73,7 @@ exports.login = async (req, res) => {
     }
 
     createSendToken(user, 200, res);
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message
@@ -70,15 +81,15 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getMe = async (req, res) => {
+export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user?._id);
 
     res.status(200).json({
       success: true,
       data: { user }
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       message: error.message

@@ -5,6 +5,7 @@ info:
   version: 1.0.0
 servers:
   - url: http://localhost:5000/api/v1
+  - url: https://blog-api-production.example.com/api/v1
 paths:
   /users:
     post:

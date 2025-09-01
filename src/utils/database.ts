@@ -1,9 +1,11 @@
-const mongoose = require('mongoose');
-require('dotenv').config();
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-let cachedDb = null;
+dotenv.config();
 
-const dbConnect = async () => {
+let cachedDb: typeof mongoose | null = null;
+
+const dbConnect = async (): Promise<typeof mongoose> => {
   if (cachedDb) {
     console.log('Usando conexão existente com o MongoDB');
     return cachedDb;
@@ -20,7 +22,7 @@ const dbConnect = async () => {
       useUnifiedTopology: true,
     };
 
-    const client = await mongoose.connect(uri, options);
+    const client = await mongoose.connect(uri);
     cachedDb = client;
     console.log('Conectado ao MongoDB com sucesso');
     return client;
@@ -30,4 +32,4 @@ const dbConnect = async () => {
   }
 };
 
-module.exports = dbConnect;
+export default dbConnect;

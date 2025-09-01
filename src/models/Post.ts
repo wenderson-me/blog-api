@@ -1,6 +1,36 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema, Model } from 'mongoose';
+import { IUser } from './User';
 
-const postSchema = new mongoose.Schema({
+interface ILike {
+  user: mongoose.Types.ObjectId | IUser;
+  createdAt: Date;
+}
+
+interface IComment {
+  user: mongoose.Types.ObjectId | IUser;
+  content: string;
+  createdAt: Date;
+}
+
+export interface IPost extends Document {
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  author: mongoose.Types.ObjectId | IUser;
+  tags: string[];
+  category: string;
+  featuredImage: string;
+  status: 'draft' | 'published' | 'archived';
+  publishedAt: Date;
+  views: number;
+  likes: ILike[];
+  comments: IComment[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const postSchema = new Schema<IPost>({
   title: {
     type: String,
     required: [true, 'Título é obrigatório'],
@@ -9,7 +39,6 @@ const postSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true,
     lowercase: true
   },
   content: {
@@ -21,7 +50,7 @@ const postSchema = new mongoose.Schema({
     maxlength: [300, 'Resumo não pode ter mais de 300 caracteres']
   },
   author: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
@@ -53,7 +82,7 @@ const postSchema = new mongoose.Schema({
   },
   likes: [{
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User'
     },
     createdAt: {
@@ -63,7 +92,7 @@ const postSchema = new mongoose.Schema({
   }],
   comments: [{
     user: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true
     },
@@ -82,13 +111,13 @@ const postSchema = new mongoose.Schema({
 });
 
 
-postSchema.pre('save', function(next) {
+postSchema.pre('save', function(this: IPost, next) {
   if (this.isModified('title')) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-zA-Z0-9 ]/g, '')
       .replace(/\s+/g, '-')
-      .trim('-');
+      .trim();
   }
 
   if (this.status === 'published' && !this.publishedAt) {
@@ -98,10 +127,13 @@ postSchema.pre('save', function(next) {
   next();
 });
 
-postSchema.index({ slug: 1 });
+postSchema.index({ slug: 1 }, { unique: true });
 postSchema.index({ author: 1 });
 postSchema.index({ category: 1 });
 postSchema.index({ tags: 1 });
 postSchema.index({ status: 1 });
+postSchema.index({ slug: 1 }, { unique: true });
 
-module.exports = mongoose.model('Post', postSchema);
+const Post: Model<IPost> = mongoose.model<IPost>('Post', postSchema);
+
+export default Post;
